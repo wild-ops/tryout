@@ -5,99 +5,120 @@ const renderer = new THREE.WebGLRenderer();
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
-// Large terrain setup
-const terrainSize = 1000000; // 1 million blocks wide
-const oceanSize = terrainSize + 500; // Ocean beyond the land
-
-// Ground texture
-const groundGeometry = new THREE.PlaneGeometry(terrainSize, terrainSize, 256, 256);
+// Ground setup
+const groundSize = 10000;
+const groundGeometry = new THREE.PlaneGeometry(groundSize, groundSize, 256, 256);
 const groundMaterial = new THREE.MeshBasicMaterial({ color: 0x007f00, wireframe: false });
 const ground = new THREE.Mesh(groundGeometry, groundMaterial);
 ground.rotation.x = -Math.PI / 2;
 scene.add(ground);
 
-// Ocean surrounding the terrain
+// Ocean
+const oceanSize = groundSize + 500;
 const oceanGeometry = new THREE.PlaneGeometry(oceanSize, oceanSize);
 const oceanMaterial = new THREE.MeshBasicMaterial({ color: 0x0000ff });
 const ocean = new THREE.Mesh(oceanGeometry, oceanMaterial);
-ocean.position.y = -2; // Slightly below terrain
+ocean.position.y = -2;
 ocean.rotation.x = -Math.PI / 2;
 scene.add(ocean);
 
-// Function to reset player if they touch the ocean
+// Function to reset player position
 function checkOceanBounds() {
-    if (Math.abs(player.position.x) > terrainSize / 2 || Math.abs(player.position.z) > terrainSize / 2) {
-        player.position.set(0, 1, 0); // Teleport back to the center
+    if (Math.abs(player.position.x) > groundSize / 2 || Math.abs(player.position.z) > groundSize / 2) {
+        player.position.set(0, 1, 0);
     }
 }
 
-// Procedural trees (random placement)
+// Procedural trees
 const trees = [];
-for (let i = 0; i < 5000; i++) { // Generate 5000 trees randomly
+for (let i = 0; i < 500; i++) {
     const treeGeometry = new THREE.CylinderGeometry(0.5, 1, 4, 6);
-    const treeMaterial = new THREE.MeshBasicMaterial({ color: 0x8B4513 }); // Brown tree trunk
+    const treeMaterial = new THREE.MeshBasicMaterial({ color: 0x8B4513 });
     const tree = new THREE.Mesh(treeGeometry, treeMaterial);
-    tree.position.set(Math.random() * terrainSize - terrainSize / 2, 2, Math.random() * terrainSize - terrainSize / 2);
+    tree.position.set(Math.random() * groundSize - groundSize / 2, 2, Math.random() * groundSize - groundSize / 2);
     scene.add(tree);
     trees.push(tree);
 }
 
-// Mountains using Perlin Noise (Basic approximation)
-function generateMountain(x, z) {
-    return Math.sin(x * 0.001) * Math.cos(z * 0.001) * 20; // Heightmap function
-}
+// Player model (blocky with hands)
+const playerGroup = new THREE.Group();
 
-// Player (simple cube)
-const playerGeometry = new THREE.BoxGeometry(1, 2, 1);
-const playerMaterial = new THREE.MeshBasicMaterial({ color: 0x0000ff });
-const player = new THREE.Mesh(playerGeometry, playerMaterial);
-player.position.set(0, 1, 0);
-scene.add(player);
+// Torso
+const torsoGeometry = new THREE.BoxGeometry(1, 2, 0.8);
+const torsoMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+const torso = new THREE.Mesh(torsoGeometry, torsoMaterial);
+torso.position.y = 2;
+playerGroup.add(torso);
 
-// Lighting
-const light = new THREE.DirectionalLight(0xffffff, 1);
-light.position.set(5, 10, 5);
-scene.add(light);
+// Head (Chill face)
+const headGeometry = new THREE.BoxGeometry(0.8, 0.8, 0.8);
+const headMaterial = new THREE.MeshBasicMaterial({ color: 0xffccaa });
+const head = new THREE.Mesh(headGeometry, headMaterial);
+head.position.y = 3;
+playerGroup.add(head);
+
+// Legs
+const legGeometry = new THREE.BoxGeometry(0.5, 1.5, 0.5);
+const legMaterial = new THREE.MeshBasicMaterial({ color: 0x0000ff });
+const leftLeg = new THREE.Mesh(legGeometry, legMaterial);
+leftLeg.position.set(-0.3, 1, 0);
+const rightLeg = new THREE.Mesh(legGeometry, legMaterial);
+rightLeg.position.set(0.3, 1, 0);
+playerGroup.add(leftLeg);
+playerGroup.add(rightLeg);
+
+// Arms
+const armGeometry = new THREE.BoxGeometry(0.4, 1.5, 0.4);
+const armMaterial = new THREE.MeshBasicMaterial({ color: 0xffccaa });
+const leftArm = new THREE.Mesh(armGeometry, armMaterial);
+leftArm.position.set(-0.8, 2.5, 0);
+const rightArm = new THREE.Mesh(armGeometry, armMaterial);
+rightArm.position.set(0.8, 2.5, 0);
+playerGroup.add(leftArm);
+playerGroup.add(rightArm);
+
+// Add player to scene
+playerGroup.position.set(0, 1, 0);
+scene.add(playerGroup);
 
 // Camera setup
-camera.position.set(0, 3, 5);
-camera.lookAt(player.position);
+camera.position.set(0, 4, 6);
+camera.lookAt(playerGroup.position);
 
 // Movement controls
 const movement = { forward: false, backward: false, left: false, right: false };
-
 document.addEventListener("keydown", (event) => {
-    if (event.key === "w" || event.key === "ArrowUp") movement.forward = true;
-    if (event.key === "s" || event.key === "ArrowDown") movement.backward = true;
-    if (event.key === "a" || event.key === "ArrowLeft") movement.left = true;
-    if (event.key === "d" || event.key === "ArrowRight") movement.right = true;
+    if (event.key === "w") movement.forward = true;
+    if (event.key === "s") movement.backward = true;
+    if (event.key === "a") movement.left = true;
+    if (event.key === "d") movement.right = true;
 });
-
 document.addEventListener("keyup", (event) => {
-    if (event.key === "w" || event.key === "ArrowUp") movement.forward = false;
-    if (event.key === "s" || event.key === "ArrowDown") movement.backward = false;
-    if (event.key === "a" || event.key === "ArrowLeft") movement.left = false;
-    if (event.key === "d" || event.key === "ArrowRight") movement.right = false;
+    if (event.key === "w") movement.forward = false;
+    if (event.key === "s") movement.backward = false;
+    if (event.key === "a") movement.left = false;
+    if (event.key === "d") movement.right = false;
 });
 
-// Animation loop
+// Arm animation on left-click
+document.addEventListener("mousedown", () => {
+    rightArm.rotation.x = -Math.PI / 2;
+    setTimeout(() => {
+        rightArm.rotation.x = 0;
+    }, 200);
+});
+
+// Game loop
 function animate() {
     requestAnimationFrame(animate);
-
-    // Update movement
-    const speed = 2;
-    if (movement.forward) player.position.z -= speed;
-    if (movement.backward) player.position.z += speed;
-    if (movement.left) player.position.x -= speed;
-    if (movement.right) player.position.x += speed;
-
-    // Check for ocean teleportation
+    const speed = 0.2;
+    if (movement.forward) playerGroup.position.z -= speed;
+    if (movement.backward) playerGroup.position.z += speed;
+    if (movement.left) playerGroup.position.x -= speed;
+    if (movement.right) playerGroup.position.x += speed;
     checkOceanBounds();
-
-    // Move camera with player
-    camera.position.set(player.position.x, 5, player.position.z + 10);
-    camera.lookAt(player.position);
-
+    camera.position.set(playerGroup.position.x, 4, playerGroup.position.z + 6);
+    camera.lookAt(playerGroup.position);
     renderer.render(scene, camera);
 }
 animate();
